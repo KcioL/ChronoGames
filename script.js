@@ -1,7 +1,7 @@
 /* ===================== Configuration ===================== */
 // 👉 Remplace par l'adresse de TON site Netlify (celle en .netlify.app).
 //    C'est ce qui permet au site hébergé sur GitHub Pages d'aller chercher les jeux.
-const NETLIFY_URL = "https://TON-SITE.netlify.app";
+const NETLIFY_URL = "https://sorties-jeux.netlify.app/";
 
 // Sur Netlify, on appelle la fonction directement ; ailleurs (GitHub Pages…), on passe par NETLIFY_URL.
 const ENDPOINT = location.hostname.endsWith("netlify.app") || location.hostname === "localhost"
