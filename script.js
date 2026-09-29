@@ -1,5 +1,5 @@
 /* ===================== Configuration ===================== */
-const NETLIFY_URL = "https://sorties-jeux.netlify.app/";
+// L'adresse Netlify (NETLIFY_URL) se règle dans config.js.
 
 // Sur Netlify, on appelle la fonction directement ; ailleurs (GitHub Pages…), on passe par NETLIFY_URL.
 const ENDPOINT = location.hostname.endsWith("netlify.app") || location.hostname === "localhost"
@@ -44,7 +44,8 @@ const state = {
   hideNoCover: true,
   page: 1,
   hasNext: false,
-  games: []
+  games: [],
+  allRanked: []
 };
 let requestId = 0;
 let dialogGame = null;
@@ -98,10 +99,10 @@ async function igdb(query, endpoint = "games") {
     res = await fetch(`${ENDPOINT}?endpoint=${endpoint}`, { method: "POST", body: query });
   } catch {
     throw new Error(NETLIFY_URL.includes("TON-SITE")
-      ? "Il manque l'adresse de ton site Netlify : remplace « https://TON-SITE.netlify.app » en haut du script dans index.html."
-      : "Le site n'arrive pas à joindre la fonction Netlify. Vérifie l'adresse NETLIFY_URL dans index.html, que le site Netlify est bien redéployé, et ta connexion internet.");
+      ? "Il manque l'adresse de ton site Netlify : remplace « https://TON-SITE.netlify.app » dans config.js."
+      : "Le site n'arrive pas à joindre la fonction Netlify. Vérifie l'adresse NETLIFY_URL dans config.js, que le site Netlify est bien redéployé, et ta connexion internet.");
   }
-  if (res.status === 404) throw new Error("La fonction Netlify est introuvable. Vérifie l'adresse NETLIFY_URL en haut du script dans index.html, et que ton site Netlify est bien déployé.");
+  if (res.status === 404) throw new Error("La fonction Netlify est introuvable. Vérifie l'adresse NETLIFY_URL dans config.js, et que ton site Netlify est bien déployé.");
   let data;
   try { data = await res.json(); } catch { data = null; }
   if (!res.ok) throw new Error(data?.error || `Erreur ${res.status}`);
@@ -132,6 +133,13 @@ function buildQuery() {
     return `search "${q}"; ${LIST_FIELDS} where ${where.join(" & ")}; limit ${PAGE_SIZE}; offset ${offset};`;
   }
 
+  if (state.mode === "year") {
+    // Jeux sortis depuis le 1er janvier, classés par nombre d'avis de joueurs et de la presse.
+    const nowTs = Math.floor(Date.now() / 1000);
+    where.push(`first_release_date >= ${utcTs(today.getFullYear(), 0, 1)}`, `first_release_date <= ${nowTs}`, "total_rating_count != null");
+    return `${LIST_FIELDS} where ${where.join(" & ")}; sort total_rating_count desc; limit ${PAGE_SIZE}; offset ${offset};`;
+  }
+
   const [start, end] = dateRange();
   where.push(`first_release_date >= ${start}`, `first_release_date <= ${end}`);
 
@@ -153,6 +161,49 @@ function buildQuery() {
   return `${LIST_FIELDS} where ${where.join(" & ")}; sort ${sort}; limit ${PAGE_SIZE}; offset ${offset};`;
 }
 
+/* ----- Populaires du moment : basé sur la « PopScore » d'IGDB ----- */
+let popularityTypeId = null;
+async function getPopularityType() {
+  if (popularityTypeId) return popularityTypeId;
+  const types = await igdb("fields id,name; limit 100;", "popularity_types");
+  // Par ordre de préférence : joueurs qui y jouent en ce moment, puis visites de la fiche IGDB.
+  for (const wanted of ["playing", "visits"]) {
+    const t = types.find(x => (x.name || "").trim().toLowerCase() === wanted);
+    if (t) return (popularityTypeId = t.id);
+  }
+  throw new Error("Classement de popularité IGDB indisponible");
+}
+
+function filterWhere() {
+  const where = ["version_parent = null"];
+  if (state.platform) where.push(`platforms = (${state.platform})`);
+  if (state.genre) where.push(`genres = (${state.genre})`);
+  if (state.theme) where.push(`themes = (${state.theme})`);
+  if (state.hideNoCover) where.push("cover != null");
+  return where;
+}
+
+async function loadMoment() {
+  const nowTs = Math.floor(Date.now() / 1000);
+  try {
+    const type = await getPopularityType();
+    const prims = await igdb(`fields game_id,value; where popularity_type = ${type}; sort value desc; limit 500;`, "popularity_primitives");
+    const order = new Map();
+    prims.forEach(p => { if (!order.has(p.game_id)) order.set(p.game_id, order.size); });
+    if (!order.size) throw new Error("vide");
+    const where = filterWhere();
+    where.push(`id = (${[...order.keys()].join(",")})`, `first_release_date <= ${nowTs}`);
+    const games = await igdb(`${LIST_FIELDS} where ${where.join(" & ")}; limit 500;`);
+    return games.sort((a, b) => order.get(a.id) - order.get(b.id));
+  } catch (err) {
+    if (/Netlify|joindre/.test(err.message)) throw err;
+    // Plan B : jeux sortis ces 3 derniers mois, les plus notés par les joueurs.
+    const where = filterWhere();
+    where.push(`first_release_date >= ${nowTs - 90 * 86400}`, `first_release_date <= ${nowTs}`, "total_rating_count != null");
+    return igdb(`${LIST_FIELDS} where ${where.join(" & ")}; sort total_rating_count desc; limit 500;`);
+  }
+}
+
 async function load(append = false) {
   if (state.mode === "wishlist") return renderWishlist();
   const myId = ++requestId;
@@ -169,10 +220,22 @@ async function load(append = false) {
   }
 
   try {
+    if (state.mode === "moment") {
+      // Tout est chargé d'un coup ; « Afficher plus » dévoile simplement la suite.
+      if (!append) {
+        const data = await loadMoment();
+        if (myId !== requestId) return;
+        state.allRanked = data.map((g, i) => ({ ...normalize(g), rank: i + 1 }));
+      }
+      state.games = state.allRanked.slice(0, state.page * PAGE_SIZE);
+      state.hasNext = state.allRanked.length > state.games.length;
+      return render();
+    }
     const data = await igdb(buildQuery());
     if (myId !== requestId) return; // une requête plus récente a été lancée entre-temps
     const known = new Set(state.games.map(g => g.id));
-    state.games.push(...data.map(normalize).filter(g => !known.has(g.id)));
+    const offset = (state.page - 1) * PAGE_SIZE;
+    state.games.push(...data.map((g, i) => ({ ...normalize(g), rank: state.mode === "year" ? offset + i + 1 : null })).filter(g => !known.has(g.id)));
     state.hasNext = data.length === PAGE_SIZE;
     render();
   } catch (err) {
@@ -189,7 +252,7 @@ const moreBtn = document.getElementById("more-btn");
 function setStatus(t) { document.getElementById("status").textContent = t; }
 
 function shouldGroup() {
-  if (state.mode === "search") return false;
+  if (["search", "moment", "year"].includes(state.mode)) return false;
   if (state.mode === "wishlist" || state.mode === "anticipated") return true;
   return state.sort !== "rating";
 }
@@ -208,7 +271,9 @@ function render() {
     upcoming: "Sorties des 6 prochains mois",
     anticipated: "Les jeux à venir que le plus de joueurs suivent",
     period: `Sorties ${state.quarter === "all" ? "de l'année" : `du trimestre ${state.quarter}`} ${state.year}`,
-    search: `Résultats pour « ${state.query} »`
+    search: `Résultats pour « ${state.query} »`,
+    moment: "Les jeux déjà sortis auxquels le plus de monde joue en ce moment",
+    year: `Les jeux sortis en ${today.getFullYear()} les plus populaires`
   };
   setStatus(`${labels[state.mode]} · ${list.length} jeux affichés`);
   results.innerHTML = shouldGroup() ? groupedHTML(list) : `<div class="grid">${list.map(cardHTML).join("")}</div>`;
@@ -245,10 +310,11 @@ function cardHTML(g) {
   const cd = d ? countdownText(d) : null;
   const score = g.rating ? `<span class="score" title="Note moyenne sur 100">${g.rating}</span>` : "";
   const wished = Boolean(wishlist[g.id]);
+  const rank = g.rank ? `<span class="rank" title="Classement">n° ${g.rank}</span>` : "";
   return `
     <article class="card">
       <button class="open" data-open="${g.id}" aria-label="Voir la fiche de ${esc(g.name)}">
-        ${img}${tab}
+        ${img}${tab}${rank}
         ${cd ? `<span class="countdown ${daysUntil(d) === 0 ? "today" : ""}">${cd}</span>` : ""}
         ${score}
       </button>
@@ -391,7 +457,7 @@ function toggleWish(id) {
     const g = state.games.find(x => x.id == id) || (dialogGame?.id == id ? dialogGame : null);
     if (!g) return;
     const { name, slug, released, cover, platforms, genres, rating } = g;
-    wishlist[id] = { id: g.id, name, slug, released, cover, platforms, genres, rating };
+    wishlist[id] = { id: g.id, name, slug, released, cover, platforms, genres, rating }; // sans le rang
   }
   saveWishlist();
   const on = Boolean(wishlist[id]);
@@ -414,7 +480,7 @@ function setMode(mode) {
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.mode === mode));
   document.getElementById("period-line").hidden = mode !== "period";
   document.getElementById("filters").hidden = mode === "wishlist";
-  document.getElementById("sort-field").hidden = mode === "anticipated" || mode === "search";
+  document.getElementById("sort-field").hidden = ["anticipated", "search", "moment", "year"].includes(mode);
   load();
 }
 
@@ -481,5 +547,6 @@ igdb('fields id,name; where name = "Nintendo Switch 2";', "platforms").then(list
   document.getElementById("platform-chips").append(b);
 }).catch(() => {});
 
+document.getElementById("year-tab").textContent = `Top ${today.getFullYear()}`;
 updateWishCount();
 load();

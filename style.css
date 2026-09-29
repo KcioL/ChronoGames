@@ -211,6 +211,15 @@ a { color: var(--accent); }
   border-radius: 999px;
   font-size: .8rem; font-weight: 700;
 }
+.rank {
+  position: absolute; top: 10px; right: 10px;
+  background: var(--marker); color: #1C1830;
+  padding: .15rem .55rem;
+  border-radius: 999px;
+  font-family: var(--display);
+  font-weight: 800; font-size: .9rem;
+  box-shadow: 0 4px 10px rgba(28, 24, 48, .3);
+}
 .countdown.today { background: var(--marker); color: #1C1830; }
 .score {
   position: absolute; right: 10px; bottom: 10px;

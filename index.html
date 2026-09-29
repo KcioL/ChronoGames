@@ -34,6 +34,8 @@
   <nav class="tabs" role="tablist" aria-label="Vues">
     <button class="tab" role="tab" data-mode="upcoming" aria-selected="true">À venir</button>
     <button class="tab" role="tab" data-mode="anticipated" aria-selected="false">Les plus attendus</button>
+    <button class="tab" role="tab" data-mode="moment" aria-selected="false">Populaires du moment</button>
+    <button class="tab" role="tab" data-mode="year" aria-selected="false" id="year-tab">Top de l'année</button>
     <button class="tab" role="tab" data-mode="period" aria-selected="false">Par période</button>
     <button class="tab" role="tab" data-mode="wishlist" aria-selected="false">Ma liste<span class="count" id="wish-count">0</span></button>
     <button class="tab" role="tab" data-mode="search" aria-selected="false" hidden id="search-tab">Recherche</button>
@@ -129,6 +131,7 @@
 
 <dialog id="detail" aria-labelledby="d-title"></dialog>
 
+<script src="config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
