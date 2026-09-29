@@ -1,143 +1,128 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChronoGames - Calendrier des Sorties du Jeu Vidéo</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChronoGames · Calendrier des sorties jeux vidéo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <h1>Chrono<span>Games</span></h1>
-            <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Rechercher un jeu (ex: Baldur's Gate, Kenshi...)">
-                <button id="search-btn">Rechercher</button>
-            </div>
-        </div>
-    </header>
 
-    <main>
-        <!-- Filtres de navigation (Trimestres et Plateformes) -->
-<section class="controls-section">
-            <div class="filters-row-top">
-                <div class="filter-group">
-                    <h3>Période</h3>
-                    <div class="btn-grid" id="quarter-filters">
-                        <button class="filter-btn active" data-quarter="all">Toute l'année</button>
-                        <button class="filter-btn" data-quarter="Q1">T1 (Jan - Mar)</button>
-                        <button class="filter-btn" data-quarter="Q2">T2 (Avr - Juin)</button>
-                        <button class="filter-btn" data-quarter="Q3">T3 (Juil - Sept)</button>
-                        <button class="filter-btn" data-quarter="Q4">T4 (Oct - Déc)</button>
-                        <button class="filter-btn" data-quarter="anticipated" style="border-color: var(--accent-blue);">🔥 Les plus attendus</button>
-                    </div>
-                    <div>
-                        <h3>Année</h3>
-                        <select id="year-select" class="sort-dropdown">
-                            <option value="2027">2027</option>
-                            <option value="2026" selected>2026</option>
-                            <option value="2025">2025</option>
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
-                            <option value="2022">2022</option>
-                        </select>
-                    </div>
-                </div>
-                
+<header class="masthead">
+  <div class="wrap masthead-row">
+    <div class="brand">
+      <h1>ChronoGames</h1>
+      <p>Les sorties jeux vidéo, mois par mois. Mets une étoile sur ceux que tu attends pour les retrouver dans ta liste.</p>
+    </div>
+    <form class="search" id="search-form" role="search">
+      <input type="search" id="search-input" placeholder="Chercher un jeu (Hollow Knight, GTA VI…)" aria-label="Chercher un jeu">
+      <button class="btn" type="submit">Chercher</button>
+    </form>
+  </div>
+</header>
 
-                <div class="filter-group dropdowns-grid">
-                    <div>
-                        <h3>Genre (Mécaniques)</h3>
-                        <select id="genre-select" class="sort-dropdown">
-                            <option value="all">Tous les genres</option>
-                            <option value="33">Arcade</option>
-                            <option value="31">Aventure</option>
-                            <option value="35">Cartes et Plateau</option>
-                            <option value="4">Combat</option>
-                            <option value="10">Course</option>
-                            <option value="30">Flipper</option>
-                            <option value="25">Hack and slash / Beat 'em up</option>
-                            <option value="32">Indépendant</option>
-                            <option value="36">MOBA</option>
-                            <option value="7">Musique</option>
-                            <option value="8">Plateforme</option>
-                            <option value="2">Point-and-click</option>
-                            <option value="26">Quiz / Trivia</option>
-                            <option value="12">RPG (Jeu de rôle)</option>
-                            <option value="11">RTS (Stratégie temps réel)</option>
-                            <option value="9">Réflexion / Puzzle</option>
-                            <option value="5">Shooter (FPS/TPS)</option>
-                            <option value="13">Simulateur / Gestion</option>
-                            <option value="14">Sport</option>
-                            <option value="15">Stratégie</option>
-                            <option value="16">Stratégie au tour par tour</option>
-                            <option value="24">Tactique</option>
-                            <option value="34">Visual Novel</option>
-                        </select>
-                    </div>
+<main class="wrap">
+  <nav class="tabs" role="tablist" aria-label="Vues">
+    <button class="tab" role="tab" data-mode="upcoming" aria-selected="true">À venir</button>
+    <button class="tab" role="tab" data-mode="anticipated" aria-selected="false">Les plus attendus</button>
+    <button class="tab" role="tab" data-mode="period" aria-selected="false">Par période</button>
+    <button class="tab" role="tab" data-mode="wishlist" aria-selected="false">Ma liste<span class="count" id="wish-count">0</span></button>
+    <button class="tab" role="tab" data-mode="search" aria-selected="false" hidden id="search-tab">Recherche</button>
+  </nav>
 
-                    <div>
-                        <h3>Univers / Thème</h3>
-                        <select id="theme-select" class="sort-dropdown">
-                            <option value="all">Tous les univers</option>
-                            <option value="31">Drame</option>
-                            <option value="17">Fantasy</option>
-                            <option value="39">Guerre</option>
-                            <option value="22">Historique</option>
-                            <option value="19">Horreur</option>
-                            <option value="38">Monde ouvert (Open World)</option>
-                            <option value="43">Mystère</option>
-                            <option value="32">Non-fiction</option>
-                            <option value="33">Sandbox</option>
-                            <option value="18">Science-Fiction</option>
-                            <option value="21">Survie (Survival)</option>
-                            <option value="20">Thriller</option>
-                        </select>
-                    </div>
+  <section class="filters" id="filters" aria-label="Filtres">
+    <div class="filter-line" id="period-line" hidden>
+      <label class="field">Année
+        <select id="year-select"></select>
+      </label>
+      <div class="chips" id="quarter-chips" aria-label="Trimestre">
+        <button class="chip" data-quarter="all" aria-pressed="true">Toute l'année</button>
+        <button class="chip" data-quarter="1" aria-pressed="false">Janv – mars</button>
+        <button class="chip" data-quarter="2" aria-pressed="false">Avril – juin</button>
+        <button class="chip" data-quarter="3" aria-pressed="false">Juil – sept</button>
+        <button class="chip" data-quarter="4" aria-pressed="false">Oct – déc</button>
+      </div>
+    </div>
 
-                    <div>
-                        <h3>Trier par</h3>
-                        <select id="sort-select" class="sort-dropdown">
-                            <option value="date_asc">Date (Plus ancien)</option>
-                            <option value="date_desc">Date (Plus récent)</option>
-                            <option value="popular">Popularité</option>
-                            <option value="rating_desc">Mieux notés</option>
-                            <option value="rating_asc">Moins bien notés</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+    <div class="filter-line">
+      <div class="chips" id="platform-chips" aria-label="Plateforme">
+        <button class="chip" data-platform="" aria-pressed="true">Toutes</button>
+        <button class="chip" data-platform="6" aria-pressed="false">PC</button>
+        <button class="chip" data-platform="167" aria-pressed="false">PS5</button>
+        <button class="chip" data-platform="169" aria-pressed="false">Xbox Series</button>
+        <button class="chip" data-platform="130" aria-pressed="false">Switch</button>
+      </div>
+    </div>
 
-            <div class="filter-group">
-                <h3>Plateformes</h3>
-                <div class="btn-grid" id="platform-filters">
-                    <button class="filter-btn active" data-platform="all">Toutes</button>
-                    <button class="filter-btn" data-platform="6">PC</button>
-                    <button class="filter-btn" data-platform="167">PS5</button>
-                    <button class="filter-btn" data-platform="169">Xbox Series X|S</button>
-                    <button class="filter-btn" data-platform="130">Nintendo Switch</button>
-                </div>
-            </div>
-        </section>
+    <div class="selects">
+      <label class="field">Genre
+        <select id="genre-select">
+          <option value="">Tous les genres</option>
+          <option value="31">Aventure</option>
+          <option value="12">RPG</option>
+          <option value="5">Shooter</option>
+          <option value="4">Combat</option>
+          <option value="25">Hack and slash / Beat 'em up</option>
+          <option value="8">Plateforme</option>
+          <option value="10">Course</option>
+          <option value="14">Sport</option>
+          <option value="15">Stratégie</option>
+          <option value="11">Stratégie temps réel</option>
+          <option value="16">Stratégie au tour par tour</option>
+          <option value="24">Tactique</option>
+          <option value="13">Simulation / Gestion</option>
+          <option value="9">Réflexion</option>
+          <option value="2">Point-and-click</option>
+          <option value="34">Visual novel</option>
+          <option value="32">Indé</option>
+          <option value="33">Arcade</option>
+          <option value="35">Cartes et plateau</option>
+          <option value="36">MOBA</option>
+          <option value="7">Musique</option>
+        </select>
+      </label>
+      <label class="field">Univers
+        <select id="theme-select">
+          <option value="">Tous les univers</option>
+          <option value="38">Monde ouvert</option>
+          <option value="17">Fantasy</option>
+          <option value="18">Science-fiction</option>
+          <option value="19">Horreur</option>
+          <option value="21">Survie</option>
+          <option value="33">Sandbox</option>
+          <option value="20">Thriller</option>
+          <option value="43">Mystère</option>
+          <option value="22">Historique</option>
+          <option value="39">Guerre</option>
+          <option value="31">Drame</option>
+        </select>
+      </label>
+      <label class="field" id="sort-field">Trier par
+        <select id="sort-select">
+          <option value="popular">Les plus suivis</option>
+          <option value="date_asc">Date de sortie</option>
+          <option value="date_desc">Date (plus récent d'abord)</option>
+          <option value="rating">Mieux notés</option>
+        </select>
+      </label>
+      <label class="toggle"><input type="checkbox" id="hide-nocover" checked> Masquer les jeux sans jaquette</label>
+    </div>
+  </section>
 
-        <!-- Grille d'affichage des jeux -->
-        <section class="games-section">
-            <h2 id="section-title">Toutes les sorties de l'année</h2>
-            <div class="loading-spinner" id="loading" style="display: none;">Chargement des données depuis IGDB...</div>
-            <div class="error-message" id="error-display" style="display: none;"></div>
-            <div class="games-grid" id="games-container"></div>
-            <div style="text-align: center; margin-top: 2.5rem;">
-                <button id="load-more-btn" class="filter-btn active" style="display: none; padding: 0.75rem 2rem; font-size: 1.1rem;">
-                    Charger plus de jeux
-                </button>
-            </div>
-        </section>
-    </main>
+  <p class="status" id="status" aria-live="polite"></p>
+  <div id="results"></div>
+  <div class="more"><button class="btn ghost" id="more-btn" hidden>Afficher plus de jeux</button></div>
+</main>
 
-    <footer>
-        <p>&copy; 2026 ChronoGames - Propulsé par l'API IGDB de Twitch</p>
-    </footer>
+<footer>
+  <div class="wrap">Données fournies par <a href="https://www.igdb.com" target="_blank" rel="noopener">IGDB</a>.</div>
+</footer>
 
-    <script src="script.js?v=2"></script>
+<dialog id="detail" aria-labelledby="d-title"></dialog>
+
+<script src="script.js"></script>
 </body>
 </html>
